@@ -1,25 +1,48 @@
+// +build linux
+
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2016 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at`
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package main
 
 import (
+	"fmt"
+	"github.com/intelsdi-x/pulse-collector-libcontainer/cgroups"
+	"github.com/intelsdi-x/snap/control/plugin"
 	"os"
-
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-libcontainer/lcplugin"
 )
 
 func main() {
-	// Three things provided:
-	//   the definition of the plugin metadata
-	//   the implementation satfiying plugin.CollectorPlugin
-	//   the collector configuration policy satifying plugin.ConfigRules
 
-	// Define default policy
-	policy := lcplugin.ConfigPolicyTree()
+	if cgplugin, err := cgroups.NewCgroups(); err != nil {
+		fmt.Printf("Error: %s \n", err)
+		return
+	} else {
+		plugin.Start(plugin.NewPluginMeta(
+			cgroups.NS_VENDOR,
+			cgroups.VERSION,
+			plugin.CollectorPluginType,
+			[]string{},
+			[]string{plugin.SnapGOBContentType},
+			plugin.ConcurrencyCount(1)),
+			cgplugin,
+			os.Args[1])
+	}
 
-	// Define metadata about Plugin
-	meta := lcplugin.Meta()
-
-	// Start a collector
-	//plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
-	plugin.Start(meta, lcplugin.NewLibCntr(), policy, os.Args[1])
 }

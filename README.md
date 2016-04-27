@@ -1,2 +1,2 @@
-# pulse-collector-libcontainer
-Libcontainer plugin for Pulse
+# snap-plugin-collector-cgroups
+Libcontainer plugin for Snap
