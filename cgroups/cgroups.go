@@ -23,9 +23,6 @@ const (
 	VERSION = 1
 )
 
-type CgManager interface {
-}
-
 type cgroups struct {
 	mountPoints    map[string]string
 	cgroupManagers map[string]*Cgroup

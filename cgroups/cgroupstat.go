@@ -6,10 +6,12 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"os"
 	"path/filepath"
+	"strings"
+	"github.com/intelsdi-x/snap-plugin-utilities/ns"
 )
 
 type Cgroup struct {
-	*fs.Manager
+	CgManager
 	dirty bool
 	stats *lcgroups.Stats
 }
@@ -23,9 +25,40 @@ type FsWalker interface {
 	Walk(path string, walkFunc filepath.WalkFunc) error
 }
 
+type CgManager interface {
+	GetStats() (*lcgroups.Stats, error)
+	Paths() map[string]string
+	SetPaths(paths map[string]string)
+	AddPath(name, path string)
+}
+
+type OsCgManager struct {
+	*fs.Manager
+}
+
+func (m *OsCgManager) GetStats() (*lcgroups.Stats, error) {
+	return m.Manager.GetStats()
+}
+
+func (m *OsCgManager) Paths() map[string]string {
+	return m.Manager.Paths
+}
+
+func (m *OsCgManager) SetPaths(paths map[string]string) {
+	m.Manager.Paths = make(map[string]string)
+	for k, v := range paths {
+		m.Manager.Paths[k] = v
+	}
+}
+
+func (m *OsCgManager) AddPath(name, path string) {
+	m.Manager.Paths[name] = path
+}
+
 type CgroupGateway interface {
 	GetAllSubsystems() ([]string, error)
 	FindCgroupMountpoint(string) (string, error)
+	NewCgManager(name string) CgManager
 }
 
 type OsFsWalker struct {
@@ -44,6 +77,18 @@ func (*OsCgroupGateway) GetAllSubsystems() ([]string, error) {
 
 func (*OsCgroupGateway) FindCgroupMountpoint(system string) (string, error) {
 	return lcgroups.FindCgroupMountpoint(system)
+}
+
+func (*OsCgroupGateway) NewCgManager(name string) CgManager {
+	return newCgManager(name)
+}
+
+func newCgManager(name string) *OsCgManager {
+	res := &OsCgManager{
+		Manager: &fs.Manager{
+			Cgroups: &configs.Cgroup{Name: name},
+			Paths:   make(map[string]string)} }
+	return res
 }
 
 func NewCgroupstat() *cgroupstat {
@@ -90,9 +135,15 @@ func (s *cgroupstat) scanCgroups(mountPoint string) (paths []string) {
 		}
 		if info.IsDir() {
 			relPath, err := relative(mountPoint, path)
-			if err == nil {
-				paths = append(paths, relPath)
+			if err != nil {
+				return err
 			}
+			pathSplit := strings.Split(relPath, "/")
+			for i, part := range pathSplit {
+				pathSplit[i] = ns.ReplaceNotAllowedCharsInNamespacePart(part)
+			}
+			relPath = strings.Join(pathSplit, "/")
+			paths = append(paths, relPath)
 		}
 		return nil
 	})
@@ -109,16 +160,18 @@ func (s *cgroupstat) discoverCgroupsFromFs(mountPoints map[string]string, manage
 	for subsystem, mountPoint := range mountPoints {
 		for _, path := range cgroupPaths[subsystem] {
 			if manager, haveMgr := managers[path]; !haveMgr {
+				//newMgr := &(Cgroup{
+				//	Manager: &fs.Manager{
+				//		Cgroups: &configs.Cgroup{Name: path},
+				//		Paths:   make(map[string]string)}})
 				newMgr := &(Cgroup{
-					Manager: &fs.Manager{
-						Cgroups: &configs.Cgroup{Name: path},
-						Paths:   make(map[string]string)}})
+					CgManager: s.cgroupGw.NewCgManager(path)})
 				managers[path] = newMgr
 			} else {
 				manager.dirty = false
 			}
 			manager := managers[path]
-			manager.Paths[subsystem] = filepath.Join(mountPoint, path)
+			manager.AddPath(subsystem, filepath.Join(mountPoint, path))
 		}
 	}
 }
@@ -126,7 +179,7 @@ func (s *cgroupstat) discoverCgroupsFromFs(mountPoints map[string]string, manage
 func markManagersDirty(managers map[string]*Cgroup) {
 	for _, manager := range managers {
 		manager.dirty = true
-		manager.Paths = make(map[string]string)
+		manager.SetPaths(map[string]string {})
 	}
 }
 
