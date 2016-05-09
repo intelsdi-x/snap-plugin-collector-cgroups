@@ -1,2 +1,2 @@
-# snap-plugin-collector-cgroups
-Libcontainer plugin for Snap
+# snap-plugin-collectoir-cgroups
+cgroups collector plugin for snap
