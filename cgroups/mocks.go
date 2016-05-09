@@ -67,3 +67,30 @@ func (m *MockCgManager) AddPath(name, path string) {
 	m.Called(name, path)
 	return
 }
+
+type StubCgManager struct {
+	paths map[string]string
+}
+
+func NewStubCgManager() *StubCgManager {
+	return &StubCgManager{map[string]string{}}
+}
+
+func (m *StubCgManager) GetStats() (*lcgroups.Stats, error) {
+	return lcgroups.NewStats(), nil
+}
+
+func (m *StubCgManager) Paths() map[string]string {
+	return m.paths
+}
+
+func (m *StubCgManager) SetPaths(paths map[string]string) {
+	m.paths = map[string]string{}
+	for k, v := range paths {
+		m.paths[k] = v
+	}
+}
+
+func (m *StubCgManager) AddPath(name, path string) {
+	m.paths[name] = path
+}

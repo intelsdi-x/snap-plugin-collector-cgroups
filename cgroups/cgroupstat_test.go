@@ -24,7 +24,6 @@ package cgroups
 import (
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
-	//"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/mock"
 	"os"
 	"path/filepath"
@@ -163,7 +162,7 @@ func TestDiscoverCgroupsFromFs(t *testing.T) {
 			mockGw.On("GetAllSubsystems").Return([]string{"cpu", "memory"}, nil)
 			mockGw.On("FindCgroupMountpoint", "cpu").Return("/cgfs/cpu", nil)
 			mockGw.On("FindCgroupMountpoint", "memory").Return("/cgfs/memory", nil)
-			mockGw.On("NewCgManager", mock.AnythingOfType("string")).Return(new(MockCgManager))
+			mockGw.On("NewCgManager", mock.AnythingOfType("string")).Return(NewStubCgManager())
 			cgstat.cgroupGw = mockGw
 			var mountPoints map[string]string
 			Convey("when  discoverMountPoints is called", func() {
@@ -197,7 +196,6 @@ func TestDiscoverCgroupsFromFs(t *testing.T) {
 				})
 			})
 
-			mockGw.AssertExpectations(t)
 		})
 	})
 }
