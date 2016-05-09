@@ -27,7 +27,6 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin"
 	"os"
 	"strings"
-	"encoding/json"
 )
 
 func main() {
@@ -45,21 +44,10 @@ func main() {
 			plugin.ConcurrencyCount(1)),
 			cgplugin,
 			os.Args[1])
-		{
-			mts, _ := cgplugin.GetMetricTypes(plugin.PluginConfigType{})
-			jsonBytes, _ := json.MarshalIndent(mts, "", "- ")
-			fmt.Printf("goth07//  metric types: %s \n", string(jsonBytes))
-		}
 		mts := []plugin.PluginMetricType{}
 		mts = append(mts, plugin.PluginMetricType{
-				Namespace_: strings.Split("intel/linux/cgroups/user_slice/*/cpu_stats/cpu_usage/total_usage", "/"),
-				Tags_: map[string]string{} })
-		fmt.Println("goth08")
-		res, _ := cgplugin.CollectMetrics(mts)
-		{
-			jsonBytes, _ := json.MarshalIndent(res, "", "- ")
-			fmt.Printf("goth09//  %s \n", string(jsonBytes))
-		}
+			Namespace_: strings.Split("intel/linux/cgroups/user_slice/*/cpu_stats/cpu_usage/total_usage", "/"),
+			Tags_:      map[string]string{}})
 	}
 
 }

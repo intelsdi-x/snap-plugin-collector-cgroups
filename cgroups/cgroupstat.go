@@ -1,13 +1,32 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2016 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package cgroups
 
 import (
+	"github.com/intelsdi-x/snap-plugin-utilities/ns"
 	lcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/intelsdi-x/snap-plugin-utilities/ns"
 )
 
 type Cgroup struct {
@@ -87,7 +106,7 @@ func newCgManager(name string) *OsCgManager {
 	res := &OsCgManager{
 		Manager: &fs.Manager{
 			Cgroups: &configs.Cgroup{Name: name},
-			Paths:   make(map[string]string)} }
+			Paths:   make(map[string]string)}}
 	return res
 }
 
@@ -179,7 +198,7 @@ func (s *cgroupstat) discoverCgroupsFromFs(mountPoints map[string]string, manage
 func markManagersDirty(managers map[string]*Cgroup) {
 	for _, manager := range managers {
 		manager.dirty = true
-		manager.SetPaths(map[string]string {})
+		manager.SetPaths(map[string]string{})
 	}
 }
 

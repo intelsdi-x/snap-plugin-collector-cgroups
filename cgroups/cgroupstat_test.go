@@ -25,11 +25,11 @@ import (
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	//"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-	"github.com/stretchr/testify/mock"
 )
 
 type JsonWalker struct {

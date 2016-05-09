@@ -21,8 +21,8 @@ limitations under the License.
 package cgroups
 
 import (
-	"github.com/stretchr/testify/mock"
 	lcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockCgroupGateway struct {
