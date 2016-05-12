@@ -12,15 +12,10 @@ TEST_SUITE=$1
 
 if [[ $TEST_SUITE == "unit" ]]; then
 	go get -u github.com/golang/lint/golint
-	go get github.com/axw/gocov/gocov
-	go get github.com/davecgh/go-spew/spew
 	go get github.com/intelsdi-x/snap-plugin-utilities/ns
 	go get github.com/mattn/goveralls
 	go get github.com/opencontainers/runc/libcontainer
-	go get github.com/pmezard/go-difflib/difflib
 	go get github.com/smartystreets/goconvey/convey
-	go get github.com/stretchr/objx
-	go get github.com/stretchr/testify/mock
 	go get golang.org/x/tools/cmd/cover
 	go get golang.org/x/tools/cmd/goimports
 

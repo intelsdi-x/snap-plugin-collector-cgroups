@@ -1,4 +1,4 @@
-// ++build unit
+// +build unit
 
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -34,7 +34,6 @@ import (
 var mountPointMocks = []mountpoint{
 	{subsystem: "blkio", subsystemNs: "blkio_stats", namespace: "", path: "/sys/fs/cgroup/blkio"},
 	{subsystem: "cpu", subsystemNs: "cpu_stats", namespace: "", path: "/sys/fs/cgroup/cpu"},
-	{subsystem: "hugetlb", subsystemNs: "hugetlb_stats", namespace: "", path: "/sys/fs/cgroup/hugetlb"},
 	{subsystem: "memory", subsystemNs: "memory_stats", namespace: "", path: "/sys/fs/cgroup/memory"},
 	{subsystem: "pids", subsystemNs: "pids_stats", namespace: "system_slice", path: "/sys/fs/cgroup/pids/system.slice"},
 }
@@ -42,8 +41,6 @@ var mountPointMocks = []mountpoint{
 var nameSpaceMocks = []plugin.MetricType{
 	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/blkio_stats/io_service_bytes_recursive/0/major", "/")...)},
 	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/cpu_stats/cpu_usage/total_usage", "/")...)},
-	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/hugetlb_stats/1GB/max_usage", "/")...)},
-	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/hugetlb_stats/1GB/usage", "/")...)},
 	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/memory_stats/usage/usage", "/")...)},
 	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/pids_stats/system_slice/current", "/")...)},
 	{Namespace_: core.NewNamespace(strings.Split("intel/linux/cgroups/pids_stats/system_slice/limit", "/")...)},
@@ -94,8 +91,8 @@ func TestCollectMetrics(t *testing.T) {
 			So(metrics, ShouldNotBeEmpty)
 		})
 
-		Convey("CollectMetrics should return 7 items", func() {
-			So(len(metrics), ShouldEqual, 7)
+		Convey("CollectMetrics should return 5 items", func() {
+			So(len(metrics), ShouldEqual, 5)
 		})
 	})
 }
@@ -128,8 +125,8 @@ func TestGetMetricTypes(t *testing.T) {
 			So(metrics, ShouldNotBeEmpty)
 		})
 
-		Convey("GetMetricTypes should return more than 50 items", func() {
-			So(len(metrics), ShouldBeGreaterThan, 50)
+		Convey("GetMetricTypes should return more than 20 items", func() {
+			So(len(metrics), ShouldBeGreaterThan, 20)
 		})
 
 	})
@@ -153,8 +150,8 @@ func TestGetMountPoints(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		Convey("GetMountPoints should return more than 50 items", func() {
-			So(len(cgplugin.mountPoints), ShouldBeGreaterThan, 50)
+		Convey("GetMountPoints should return more than 20 items", func() {
+			So(len(cgplugin.mountPoints), ShouldBeGreaterThan, 20)
 		})
 
 	})
