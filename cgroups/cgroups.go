@@ -54,19 +54,11 @@ type mountpoint struct {
 }
 
 type cgroups struct {
-	hostname    string
 	mountPoints []*mountpoint
 }
 
 func NewCgroups(test bool) (*cgroups, error) {
-	hostname := "localhost"
-	if hostname_, err := os.Hostname(); err == nil {
-		hostname = hostname_
-	} else {
-		return nil, err
-	}
-
-	c := &cgroups{hostname: hostname}
+	c := &cgroups{}
 
 	// Do not get mountpoints automatically when testing
 	if !test {
@@ -77,9 +69,7 @@ func NewCgroups(test bool) (*cgroups, error) {
 }
 
 func (c *cgroups) CollectMetrics(metricTypes []plugin.MetricType) ([]plugin.MetricType, error) {
-	metrics := []plugin.MetricType{}
-
-	for _, metricType := range metricTypes {
+	for i, metricType := range metricTypes {
 		for _, mountPoint := range c.mountPoints {
 
 			// Mount point part of metric namespace match mount point namespace
@@ -94,22 +84,16 @@ func (c *cgroups) CollectMetrics(metricTypes []plugin.MetricType) ([]plugin.Metr
 					if metricType.Namespace().String() == "/"+strings.Join(mountPoint.getFullNamespace(metric), "/") {
 						data := ns.GetValueByNamespace(mountPoint.stats, strings.Split(strings.Join([]string{mountPoint.subsystemNs, metric}, "/"), "/"))
 
-						mt := plugin.MetricType{
-							Data_:      data,
-							Timestamp_: time.Now(),
-							Namespace_: metricType.Namespace(),
-							Version_:   VERSION,
-							Tags_:      map[string]string{core.STD_TAG_PLUGIN_RUNNING_ON: c.hostname},
-						}
-
-						metrics = append(metrics, mt)
+						metricTypes[i].Data_ = data
+						metricTypes[i].Timestamp_ = time.Now()
+						metricTypes[i].Version_ = VERSION
 					}
 				}
 			}
 		}
 	}
 
-	return metrics, nil
+	return metricTypes, nil
 }
 
 func (c *cgroups) GetMetricTypes(plugin.ConfigType) ([]plugin.MetricType, error) {
@@ -122,7 +106,6 @@ func (c *cgroups) GetMetricTypes(plugin.ConfigType) ([]plugin.MetricType, error)
 			mt := plugin.MetricType{
 				Namespace_: core.NewNamespace(mountPoint.getFullNamespace(metric)...),
 				Version_:   VERSION,
-				Tags_:      map[string]string{core.STD_TAG_PLUGIN_RUNNING_ON: c.hostname},
 			}
 
 			metrics = append(metrics, mt)
