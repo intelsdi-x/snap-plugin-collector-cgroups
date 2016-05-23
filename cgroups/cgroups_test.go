@@ -32,10 +32,10 @@ import (
 )
 
 var mountPointMocks = []mountpoint{
-	{subsystem: "blkio", subsystemNs: "blkio_stats", namespace: "", path: "/sys/fs/cgroup/blkio"},
-	{subsystem: "cpu", subsystemNs: "cpu_stats", namespace: "", path: "/sys/fs/cgroup/cpu"},
-	{subsystem: "memory", subsystemNs: "memory_stats", namespace: "", path: "/sys/fs/cgroup/memory"},
-	{subsystem: "pids", subsystemNs: "pids_stats", namespace: "system_slice", path: "/sys/fs/cgroup/pids/system.slice"},
+	{subsystem: "blkio_stats", namespace: "", path: "/sys/fs/cgroup/blkio"},
+	{subsystem: "cpu_stats", namespace: "", path: "/sys/fs/cgroup/cpu"},
+	{subsystem: "memory_stats", namespace: "", path: "/sys/fs/cgroup/memory"},
+	{subsystem: "pids_stats", namespace: "system_slice", path: "/sys/fs/cgroup/pids/system.slice"},
 }
 
 var nameSpaceMocks = []plugin.MetricType{

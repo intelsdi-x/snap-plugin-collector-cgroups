@@ -20,8 +20,11 @@ limitations under the License.
 package cgroups
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,15 +45,17 @@ const (
 	NS_PLUGIN = "cgroups"
 	// version of plugin
 	VERSION = 2
+
+	subsystemID      = 3
+	mountPointPathID = 4
 )
 
 type mountpoint struct {
-	subsystem   string
-	subsystemNs string
-	namespace   string
-	metrics     []string
-	path        string
-	stats       *libcgroups.Stats
+	subsystem string
+	namespace string
+	metrics   []string
+	path      string
+	stats     *libcgroups.Stats
 }
 
 type cgroups struct {
@@ -69,46 +74,89 @@ func NewCgroups(test bool) (*cgroups, error) {
 }
 
 func (c *cgroups) CollectMetrics(metricTypes []plugin.MetricType) ([]plugin.MetricType, error) {
+	var data interface{}
+	var metrics []plugin.MetricType
+
 	for i, metricType := range metricTypes {
+		matchAny := false
+
 		for _, mountPoint := range c.mountPoints {
 
-			// Mount point part of metric namespace match mount point namespace
-			if strings.HasPrefix(metricType.Namespace().String(), "/"+strings.Join(mountPoint.getFullNamespace(""), "/")) {
+			// Cgroup subsystem match with namespace subsystem
+			if metricType.Namespace()[subsystemID].Value == mountPoint.subsystem {
 
-				// Get cgroup metrics for matching mount point
-				c.getMountPointMetrics(mountPoint)
+				// Cgroup mountpoint match with namespace mountpoint
+				if matchSlice(strings.Split(metricType.Namespace()[mountPointPathID].Value, "/"), strings.Split(mountPoint.namespace, "/")) {
 
-				for _, metric := range mountPoint.metrics {
+					mountPoint.getMetrics()
 
-					// Metric namespace match mount point cgroup metric
-					if metricType.Namespace().String() == "/"+strings.Join(mountPoint.getFullNamespace(metric), "/") {
-						data := ns.GetValueByNamespace(mountPoint.stats, strings.Split(strings.Join([]string{mountPoint.subsystemNs, metric}, "/"), "/"))
+					for _, mpMetric := range mountPoint.metrics {
+						// Get the metric part from namespace
+						nsMetric := strings.Join(metricType.Namespace().Strings()[mountPointPathID+1:], "/")
 
-						metricTypes[i].Data_ = data
-						metricTypes[i].Timestamp_ = time.Now()
-						metricTypes[i].Version_ = VERSION
+						// Remove percpu_usage value suffix for matching
+						if strings.HasPrefix(nsMetric, "cpu_usage/percpu_usage/") {
+							nsMetric = strings.TrimSuffix(nsMetric, "/value")
+						}
+
+						// Mountpoint metric match with namespace metric part
+						if matchSlice(strings.Split(nsMetric, "/"), strings.Split(mpMetric, "/")) {
+
+							// Asterisk exists only in empty containers on static metrics list
+							if strings.Contains(mpMetric, "*") {
+								data = nil
+							} else {
+								// CpuStats structure can have only one JSON field name and it is "cpu_stats" even for "cpuacct_stats", so replace is needed
+								subsystemEntry := strings.Replace(mountPoint.subsystem, "cpuacct_stats", "cpu_stats", -1)
+
+								// Get metric data
+								data = ns.GetValueByNamespace(mountPoint.stats, strings.Split(strings.Join([]string{subsystemEntry, mpMetric}, "/"), "/"))
+							}
+
+							metricTypes[i].Namespace_ = mountPoint.getFullNamespace(mountPoint.namespace, mpMetric)
+							metricTypes[i].Data_ = data
+							metricTypes[i].Timestamp_ = time.Now()
+							metricTypes[i].Version_ = VERSION
+
+							assignMetricMeta(&metricTypes[i], allMetrics)
+
+							metrics = append(metrics, metricTypes[i])
+							matchAny = true
+						}
 					}
 				}
 			}
 		}
+
+		if !matchAny {
+			metrics = append(metrics, metricType)
+		}
 	}
 
-	return metricTypes, nil
+	return metrics, nil
 }
 
 func (c *cgroups) GetMetricTypes(plugin.ConfigType) ([]plugin.MetricType, error) {
 	metrics := []plugin.MetricType{}
+	exists := make(map[string]bool)
 
 	for _, mountPoint := range c.mountPoints {
-		c.getMountPointMetrics(mountPoint)
+		mountPoint.getMetrics()
 
 		for _, metric := range mountPoint.metrics {
-			mt := plugin.MetricType{
-				Namespace_: core.NewNamespace(mountPoint.getFullNamespace(metric)...),
-				Version_:   VERSION,
-			}
+			// Create namespace with dynamic mount path for dynamic metric name
+			metricNamespace := mountPoint.getFullNamespace("*", dynamicToAsterisk(metric))
 
-			metrics = append(metrics, mt)
+			// Ignore duplicates
+			if !exists[metricNamespace.String()] {
+				mt := plugin.MetricType{
+					Namespace_: metricNamespace,
+					Version_:   VERSION,
+				}
+				metrics = append(metrics, mt)
+
+				exists[metricNamespace.String()] = true
+			}
 		}
 	}
 	return metrics, nil
@@ -119,13 +167,18 @@ func (c *cgroups) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 }
 
 func (c *cgroups) newMountPoint(subsystem string, namespace string, path string) (*mountpoint, error) {
-	return &mountpoint{subsystem: subsystem, subsystemNs: subsystem + "_stats", namespace: namespace, path: path}, nil
+	if namespace == "" {
+		namespace = "root"
+	}
+
+	return &mountpoint{subsystem: subsystem, namespace: namespace, path: path}, nil
 }
 
 func (c *cgroups) addMountPoint(mountPoint *mountpoint) {
 	c.mountPoints = append(c.mountPoints, mountPoint)
 }
 
+// getMountPoints discovers all cgroup mountpoints recursively
 func (c *cgroups) getMountPoints() error {
 	// Get all subsystems
 	subsysAll, err := libcgroups.GetAllSubsystems()
@@ -153,7 +206,7 @@ func (c *cgroups) getMountPoints() error {
 				namespace := strings.Join(nsSplit, "/")
 
 				// Create mountpoint
-				mountPoint, err := c.newMountPoint(subsys, namespace, path)
+				mountPoint, err := c.newMountPoint(subsys+"_stats", namespace, path)
 				if err == nil {
 					c.addMountPoint(mountPoint)
 				}
@@ -164,10 +217,11 @@ func (c *cgroups) getMountPoints() error {
 	return nil
 }
 
-func (c *cgroups) getMountPointMetrics(mountPoint *mountpoint) error {
+// getMetrics gets all metrics for desired mountpoint from OS
+func (mp *mountpoint) getMetrics() error {
 	// Get stats from mountpoint
 	manager := libcgroupsfs.Manager{Paths: make(map[string]string)}
-	manager.Paths[mountPoint.subsystem] = mountPoint.path
+	manager.Paths[strings.TrimSuffix(mp.subsystem, "_stats")] = mp.path
 	stats, err := manager.GetStats()
 
 	if err != nil {
@@ -175,35 +229,83 @@ func (c *cgroups) getMountPointMetrics(mountPoint *mountpoint) error {
 	}
 
 	// Find all cgroup stat metrics for mountpoint
-	metrics := []string{}
-	switch mountPoint.subsystem {
-	case "blkio":
-		ns.FromCompositeObject(stats.BlkioStats, "", &metrics, ns.InspectEmptyContainers(ns.AlwaysFalse))
-	case "cpu":
-		ns.FromCompositeObject(stats.CpuStats, "", &metrics, ns.InspectEmptyContainers(ns.AlwaysFalse))
-	case "hugetlb":
-		ns.FromCompositeObject(stats.HugetlbStats, "", &metrics, ns.InspectEmptyContainers(ns.AlwaysFalse))
-	case "memory":
-		ns.FromCompositeObject(stats.MemoryStats, "", &metrics, ns.InspectEmptyContainers(ns.AlwaysFalse))
-	case "pids":
-		ns.FromCompositeObject(stats.PidsStats, "", &metrics, ns.InspectEmptyContainers(ns.AlwaysFalse))
+	metricList := []string{}
+
+	switch mp.subsystem {
+	case "blkio_stats":
+		ns.FromCompositeObject(stats.BlkioStats, "", &metricList, ns.InspectEmptyContainers(ns.AlwaysTrue))
+	case "cpu_stats", "cpuacct_stats":
+		ns.FromCompositeObject(stats.CpuStats, "", &metricList, ns.InspectEmptyContainers(ns.AlwaysTrue))
+	case "hugetlb_stats":
+		ns.FromCompositeObject(stats.HugetlbStats, "", &metricList, ns.InspectEmptyContainers(ns.AlwaysTrue))
+	case "memory_stats":
+		ns.FromCompositeObject(stats.MemoryStats, "", &metricList, ns.InspectEmptyContainers(ns.AlwaysTrue))
+	case "pids_stats":
+		ns.FromCompositeObject(stats.PidsStats, "", &metricList, ns.InspectEmptyContainers(ns.AlwaysTrue))
 	}
 
-	mountPoint.stats = stats
-	mountPoint.metrics = metrics
+	mp.stats = stats
+	mp.metrics = metricList
 
 	return nil
 }
 
-func (m *mountpoint) getFullNamespace(metric string) []string {
-	result := []string{}
-
-	// Skip empty mountpoint namespace
-	if m.namespace == "" {
-		result = strings.Split(strings.Join([]string{NS_VENDOR, NS_CLASS, NS_PLUGIN, m.subsystemNs, metric}, "/"), "/")
+// getFullNamespace constructs full snap namespace for desired mountpoint with provided mountpoint path and metric name
+func (mp *mountpoint) getFullNamespace(mountpoint string, metric string) (result core.Namespace) {
+	if mountpoint == "*" {
+		result = core.NewNamespace(NS_VENDOR, NS_CLASS, NS_PLUGIN, mp.subsystem).AddDynamicElement("mountpoint", "Part of a mountpoint path")
 	} else {
-		result = strings.Split(strings.Join([]string{NS_VENDOR, NS_CLASS, NS_PLUGIN, m.subsystemNs, m.namespace, metric}, "/"), "/")
+		result = core.NewNamespace(NS_VENDOR, NS_CLASS, NS_PLUGIN, mp.subsystem).AddStaticElements(strings.Split(mountpoint, "/")...)
+	}
+
+	if metric != "" {
+		metricSplit := strings.Split(metric, "/")
+		for i, metricEntry := range metricSplit {
+			if metricEntry == "*" {
+				result = result.AddDynamicElement("metric_id_"+strconv.Itoa(i), "Metric ID")
+			} else {
+				result = result.AddStaticElement(metricEntry)
+			}
+		}
+
+		// Fix "ends with asterisk is not allowed" error for percpu_usage
+		if strings.HasPrefix(metric, "cpu_usage/percpu_usage/") {
+			result = result.AddStaticElement("value")
+		}
 	}
 
 	return result
+}
+
+// dynamicToAsterisk replaces all dynamic namespace entries (like digit-only ID or capacity in hugetlb) to asterisks
+func dynamicToAsterisk(ns string) string {
+	digitEntry := regexp.MustCompile(`(^|\/)(\d+(B|KB|MB|GB)?)($|\/)`)
+	return digitEntry.ReplaceAllString(ns, `$1*$4`)
+}
+
+// matchSlice matches 2 slices with asterisk support
+func matchSlice(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] && a[i] != "*" && b[i] != "*" {
+			return false
+		}
+	}
+
+	return true
+}
+
+// assignMetricMeta assigs metadata to metric using predefined metadata slice
+func assignMetricMeta(mt *plugin.MetricType, allMetrics []metric) {
+	for _, metricMeta := range allMetrics {
+		fmt.Println("Match ", metricMeta.ns, "with", mt.Namespace().String())
+		if matchSlice(strings.Split(metricMeta.ns, "/"), strings.Split(mt.Namespace().String(), "/")) {
+			mt.Description_ = metricMeta.description
+			mt.Unit_ = metricMeta.unit
+			break
+		}
+	}
 }

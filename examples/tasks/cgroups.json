@@ -7,35 +7,9 @@
     "workflow": {
         "collect": {
             "metrics": {
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/0/minor": {},
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/0/op": {},
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/0/value": {},
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/1/major": {},
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/1/minor": {},
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/1/op": {},
-                "/intel/linux/cgroups/blkio_stats/io_serviced_recursive/1/value": {},
-                "/intel/linux/cgroups/cpu_stats/cpu_usage/total_usage": {},
-                "/intel/linux/cgroups/cpu_stats/cpu_usage/usage_in_kernelmode": {},
-                "/intel/linux/cgroups/cpu_stats/cpu_usage/usage_in_usermode": {},
-                "/intel/linux/cgroups/cpu_stats/throttling_data/periods": {},
-                "/intel/linux/cgroups/cpu_stats/throttling_data/throttled_periods": {},
-                "/intel/linux/cgroups/cpu_stats/throttling_data/throttled_time": {},
-                "/intel/linux/cgroups/hugetlb_stats/2MB/failcnt": {},
-                "/intel/linux/cgroups/hugetlb_stats/2MB/max_usage": {},
-                "/intel/linux/cgroups/hugetlb_stats/2MB/usage": {},
-                "/intel/linux/cgroups/memory_stats/cache": {},
-                "/intel/linux/cgroups/memory_stats/kernel_tcp_usage/failcnt": {},
-                "/intel/linux/cgroups/memory_stats/kernel_tcp_usage/limit": {},
-                "/intel/linux/cgroups/memory_stats/kernel_tcp_usage/max_usage": {},
-                "/intel/linux/cgroups/memory_stats/kernel_tcp_usage/usage": {},
-                "/intel/linux/cgroups/memory_stats/kernel_usage/failcnt": {},
-                "/intel/linux/cgroups/memory_stats/kernel_usage/limit": {},
-                "/intel/linux/cgroups/memory_stats/kernel_usage/max_usage": {},
-                "/intel/linux/cgroups/memory_stats/kernel_usage/usage": {},
-                "/intel/linux/cgroups/pids_stats/init_scope/current": {},
-                "/intel/linux/cgroups/pids_stats/init_scope/limit": {},
-                "/intel/linux/cgroups/pids_stats/system_slice/current": {},
-                "/intel/linux/cgroups/pids_stats/system_slice/limit": {}
+                "/intel/linux/cgroups/hugetlb_stats/*/*/failcnt": {},
+                "/intel/linux/cgroups/hugetlb_stats/*/*/max_usage": {},
+                "/intel/linux/cgroups/hugetlb_stats/*/*/usage": {}
             }
         }
     }
