@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "5s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/linux/cgroups/hugetlb_stats/*/*/failcnt": {},
+                "/intel/linux/cgroups/hugetlb_stats/*/*/max_usage": {},
+                "/intel/linux/cgroups/hugetlb_stats/*/*/usage": {}
+            }
+        }
+    }
+}

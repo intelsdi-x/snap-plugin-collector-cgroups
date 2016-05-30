@@ -1,25 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-libcontainer/lcplugin"
+	"github.com/intelsdi-x/snap-plugin-collector-cgroups/cgroups"
+	"github.com/intelsdi-x/snap/control/plugin"
 )
 
 func main() {
-	// Three things provided:
-	//   the definition of the plugin metadata
-	//   the implementation satfiying plugin.CollectorPlugin
-	//   the collector configuration policy satifying plugin.ConfigRules
 
-	// Define default policy
-	policy := lcplugin.ConfigPolicyTree()
+	if cgplugin, err := cgroups.NewCgroups(false); err != nil {
+		fmt.Printf("Error: %s \n", err)
+		return
+	} else {
+		plugin.Start(plugin.NewPluginMeta(
+			cgroups.NS_VENDOR,
+			cgroups.VERSION,
+			plugin.CollectorPluginType,
+			[]string{},
+			[]string{plugin.SnapGOBContentType},
+			plugin.ConcurrencyCount(1)),
+			cgplugin,
+			os.Args[1])
+	}
 
-	// Define metadata about Plugin
-	meta := lcplugin.Meta()
-
-	// Start a collector
-	//plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
-	plugin.Start(meta, lcplugin.NewLibCntr(), policy, os.Args[1])
 }
