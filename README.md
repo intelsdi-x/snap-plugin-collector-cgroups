@@ -1,6 +1,8 @@
 # snap-plugin-collector-cgroups
 
-Snap plugin for collecting cgroups metrics from /sys/fs/cgroup filesystem using [libcontainer](https://github.com/opencontainers/runc/tree/master/libcontainer) library for gatchering cgroup stats.
+Snap plugin for collecting cgroups metrics using [libcontainer](https://github.com/opencontainers/runc/tree/master/libcontainer) library for cgroup statistics.
+
+*WARNING*: This plugin requires root privileges to run. Use with caution.
 
 1. [Getting Started](#getting-started)
   * [System Requirements](#system-requirements)
@@ -16,15 +18,16 @@ Snap plugin for collecting cgroups metrics from /sys/fs/cgroup filesystem using 
 
 ## Getting Started
 
- Plugin collects specified metrics in-band on OS level.
-
 ### System Requirements
+* Snap daemon (`snapd`) started with root permissions
+* [golang 1.5+](https://golang.org/dl/) - needed only for building
 
- - Linux system
- - Snap daemon started with root permissions
+### Operating systems
+All OSs currently supported by Snap:
+* Linux/amd64
 
 ### Installation
-#### Download cgroups plugin binary:
+#### Download plugin binary:
 You can get the pre-built binaries for your OS and architecture at snap's [Github Releases](https://github.com/intelsdi-x/snap/releases) page.
 
 #### To build the plugin binary:
@@ -42,14 +45,12 @@ This builds the plugin in `/build/sysdevfs`
 ## Documentation
 
 ### Collected Metrics
-This plugin has the ability to gather all rootfs cgroups metrics.
-
-Check [METRICS.md](METRICS.md) for full metrics list.
+This plugin has the ability to gather all rootfs cgroups metrics from /sys/fs/cgroup. See [METRICS.md](METRICS.md) for full metrics list.
 
 ### Examples
-Example of using snap cgroups collector and getting cgroups data remotely via REST API in real time.
+Here is an example of using Snap cgroups collector and getting cgroups data remotely via REST API in real time.
 
-First of all, it is needed to create task manifest, to tell cgroups collector plugin what data you want to collect. You can find example task manifest file in examples/tasks/ dir:
+A Task Manifest is required to select what data you want to collect. You can find an example Task Manifest file in [examples/tasks/](examples/tasks/) directory:
 
     {
         "version": 1,
@@ -69,14 +70,14 @@ First of all, it is needed to create task manifest, to tell cgroups collector pl
     }
 
 
-This task manifest collects some stats from all cgroup subsystems (blkio, cpu, hugetlb, memory, pids) continously with 5 second interval.
+This Task Manifest collects a portion of statistics from all cgroup subsystems (blkio, cpu, hugetlb, memory, pids) continously every 5 seconds.
 
-#### How to start it?
-If you've got snap properly installed, you need to start snap daemon with root permissions and plugin trust mode:
+### Examples
+If you've got Snap installed, you need to start snap daemon with root permissions and plugin trust mode:
 
     $ sudo snapd -t 0
 
-Then in another terminal window you need to load snap plugin using snapctl tool:
+Then, in another terminal window, load the plugin:
 
     $ snapctl plugin load snap-plugin-collector-cgroups
     Plugin loaded
@@ -120,20 +121,25 @@ That's it!
 ### Roadmap
 There isn't a current roadmap for this plugin. As we launch this plugin, we do not have any outstanding requirements for the next release.
 
+If you have a feature request, please add it as an [issue](https://github.com/intelsdi-x/snap-plugin-collector-cgroups/issues) and feel free to then submit a [pull request](https://github.com/intelsdi-x/snap-plugin-collector-cgroups/pulls).
+
+
 ## Community Support
-This repository is one of **many** plugins in **snap**, a powerful telemetry framework. See the full project at http://github.com/intelsdi-x/snap To reach out to other users, head to the [main framework](https://github.com/intelsdi-x/snap#community-support).
+This repository is one of **many** plugins in **Snap**, the open telemetry framework. See the full project at http://github.com/intelsdi-x/snap. To reach out to other users, head to the [main framework](https://github.com/intelsdi-x/snap#community-support).
 
 ## Contributing
 We love contributions!
 
 There's more than one way to give back, from examples to blogs to code updates. See our recommended process in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+And **thank you!** Your contribution, through code and participation, is incredibly important to us.
+
 ## License
-[snap](http://github.com/intelsdi-x/snap), along with this plugin, is an Open Source software released under the Apache 2.0 [License](LICENSE).
+[Snap](http://github.com:intelsdi-x/snap), along with this plugin, is an Open Source software released under the Apache 2.0 [License](LICENSE).
 
-## Authors
+## Acknowledgements
 
-* [Mateusz Kleina](https://github.com/mkleina)
-* [Marcin Olszewski](https://github.com/marcintao)
+* Author: [Mateusz Kleina](https://github.com/mkleina)
+* Author: [Marcin Olszewski](https://github.com/marcintao)
 
 And **thank you!** Your contribution, through code and participation, is incredibly important to us.
