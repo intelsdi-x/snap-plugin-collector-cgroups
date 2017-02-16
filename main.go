@@ -15,7 +15,7 @@ func main() {
 		return
 	} else {
 		plugin.Start(plugin.NewPluginMeta(
-			cgroups.NS_VENDOR,
+			cgroups.NS_PLUGIN,
 			cgroups.VERSION,
 			plugin.CollectorPluginType,
 			[]string{},
